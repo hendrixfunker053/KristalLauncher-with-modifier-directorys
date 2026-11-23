@@ -71,8 +71,20 @@ object KristalRuntimeStorage {
         return removed
     }
 
-    internal fun rootDirectory(context: Context): File =
-        File(context.filesDir, ROOT_DIRECTORY).apply { mkdirs() }
+    /**
+     * Stores downloaded Kristal runtimes in the app-specific external files area:
+     * Android/data/<applicationId>/files/kristal_runtimes.
+     * No broad storage permission is required. Fall back to internal storage on
+     * devices where the external app-specific directory is unavailable.
+     */
+    internal fun rootDirectory(context: Context): File {
+        val externalRoot = context.getExternalFilesDir(null)
+        val preferred = externalRoot?.let { File(it, ROOT_DIRECTORY) }
+        val destination = preferred?.takeIf { it.exists() || it.mkdirs() }
+            ?: File(context.filesDir, ROOT_DIRECTORY)
+        if (!destination.exists()) destination.mkdirs()
+        return destination
+    }
 
     internal fun stagingDirectory(context: Context): File =
         File(context.cacheDir, "kristal_runtime_staging").apply { mkdirs() }
